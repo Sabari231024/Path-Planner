@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Dashboard</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.3.0"></script>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    
+    <style>
+    /* General Styles */
+    /* General Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+    background-color: #ffffff;
+    color: #121212;
+    flex-direction: column;
+}
+
+/* Navbar (Header) */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #f8f9fa;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.nav-links {
+    display: flex;
+    gap: 15px;
+}
+
+.nav-links button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.settings {
+    cursor: pointer;
+}
+
+.user-avatar {
+    background: #007bff;
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+/* Container and Layout */
+.container {
+    display: flex;
+    margin-top: 60px;
+    height: calc(100vh - 60px);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background: #f8f9fa;
+    padding: 20px;
+    height: 100%;
+    position: fixed;
+    left: 0;
+    top: 60px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 18px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.sidebar ul {
+    list-style: none;
+}
+
+.sidebar-menu-item {
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background: #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.sidebar-menu-item:hover,
+.sidebar-menu-item.active {
+    background: #007bff;
+    color: white;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 240px;
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+    width: calc(100% - 240px);
+}
+
+/* Card Styling */
+.card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card h3 {
+    margin-bottom: 15px;
+    color: #007bff;
+}
+
+/* Charts Container */
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.charts-container canvas {
+    width: 100%;
+    min-height: 300px;
+    margin-bottom: 20px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Heatmap Specific Styling */
+#semesterPerformanceHeatmap, #comparePerformanceHeatmap {
+    min-height: 400px;
+    width: 100%;
+    height: auto;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 1024px) {
+    .sidebar {
+        width: 180px;
+    }
+    
+    .main-content {
+        margin-left: 200px;
+        width: calc(100% - 200px);
+    }
+    
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+    }
+    
+    .nav-links, .user-profile {
+        margin-top: 10px;
+    }
+}
+
+
+.user-profile {
+    display: flex;
+    align-items: center;
+}
+
+.user-avatar {
+    background: #007bff;
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 50%;
+}
+
+/* Layout */
+.app-container {
+    display: flex;
+    margin-top: 60px;
+    height: calc(100vh - 60px);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background: #f8f9fa;
+    padding: 20px;
+    height: 100%;
+    position: fixed;
+    left: 0;
+    top: 60px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar h2 {
+    font-size: 18px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.sidebar-menu-item {
+    list-style: none;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background: #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.sidebar-menu-item:hover,
+.sidebar-menu-item.active {
+    background: #007bff;
+    color: white;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 240px;
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 10px 15px;
+    margin-right: 10px;
+    background: #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.tab:hover,
+.tab.active {
+    background: #007bff;
+    color: white;
+}
+
+/* Notice Board & Assignments */
+.card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+/* Updated Styling for Assignments & Key Notes */
+.assignments-container, .keynotes-container {
+    background: #f1f1f1;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.assignments-container h3, .keynotes-container h3 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 15px;
+}
+
+/* Charts Page */
+.charts-container {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Voice & Eye Tracking Buttons */
+.voice-control-btn, .eye-tracking-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 10px;
+    transition: background 0.3s ease-in-out;
+}
+
+.voice-control-btn:hover, .eye-tracking-btn:hover {
+    background: #0056b3;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 1024px) {
+    .sidebar {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .user-profile {
+        margin-top: 10px;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">📋 LMS</div>
+        <nav class="nav-links">
+            <button id="eye-tracking-btn">👀 Eye Tracking</button>
+            <button id="voice-navigation-btn">🎤 Voice Navigation</button>
+        </nav>
+        <div class="user-profile">
+            <div class="settings">⚙️ Settings</div>
+            <div class="user-avatar">SS</div>
+            <span>Sabari Srinivas</span>
+        </div>
+    </header>
+    
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Dashboard</h2>
+            <ul>
+                <li class="sidebar-menu-item active">📊 Overview</li>
+                <li class="sidebar-menu-item" data-tab="chat"><a href="C:\Users\sabar\OneDrive\Desktop\HCI\templates\chat.html">💬 Chat</a></li>
+                <li class="sidebar-menu-item" data-tab="calendar">📅 Meetings</li>
+                <li class="sidebar-menu-item" data-tab="tasks">📝 Tasks</li>
+                <li class="sidebar-menu-item" data-tab="projects">📁 Projects</li>
+                <li class="sidebar-menu-item" data-tab="charts">📈 Charts</li>
+                <li class="sidebar-menu-item" data-tab="assignments">📚 Assignments</li>
+                <li class="sidebar-menu-item" data-tab="notes">📝 Key Notes</li>
+            </ul>
+        </aside>
+        
+        <main class="main-content">
+            <section id="charts" class="card tab-content active">
+                <h3>📊 Performance Analytics</h3>
+                <div class="charts-container">
+                    <div>
+                        <h4>Performance Scores</h4>
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                    <div>
+                        <h4>Engagement Levels</h4>
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                    <div>
+                        <h4>Assignment Completion</h4>
+                        <canvas id="assignmentCompletionChart"></canvas>
+                    </div>
+                    <div>
+                        <h4>Skill Proficiency</h4>
+                        <canvas id="skillProficiencyChart"></canvas>
+                    </div>
+                    <div>
+                        <h4>Weekly Activity</h4>
+                        <canvas id="weeklyActivityChart"></canvas>
+                    </div>
+                    <div>
+                        <h4>Semester Performance Heatmap</h4>
+                        <canvas id="semesterPerformanceHeatmap"></canvas>
+                    </div>
+                    <div class="full-width">
+                        <h4>Comparative Performance Heatmap</h4>
+                        <canvas id="comparePerformanceHeatmap"></canvas>
+                    </div>
+                </div>
+            </section>
+            <section id="assignments" class="card tab-content">
+                <h3>📚 Assignments</h3>
+                <ul>
+                    <li>Assignment 1: Linear Algebra - Due: Oct 5</li>
+                    <li>Assignment 2: Machine Learning - Due: Oct 10</li>
+                    <li>Assignment 3: Data Science - Due: Oct 15</li>
+                </ul>
+            </section>
+            <section id="notes" class="card tab-content">
+                <h3>📝 Key Notes</h3>
+                <ul>
+                    <li>Lecture 1: Introduction to AI</li>
+                    <li>Lecture 2: Neural Networks Fundamentals</li>
+                    <li>Lecture 3: Deep Learning Concepts</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Tab switching logic
+            const menuItems = document.querySelectorAll('.sidebar-menu-item');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all menu items and tab contents
+                    menuItems.forEach(mi => mi.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    // Add active class to clicked menu item
+                    this.classList.add('active');
+                    
+                    // Show corresponding tab content if it exists
+                    if (tabId) {
+                        const tabContent = document.getElementById(tabId);
+                        if (tabContent) {
+                            tabContent.classList.add('active');
+                        }
+                    } else {
+                        // If overview is clicked (no tab ID)
+                        document.getElementById('charts').classList.add('active');
+                    }
+                });
+            });
+
+            function createChart(chartId, type, labels, datasets, options = {}) {
+                const canvas = document.getElementById(chartId);
+                if (canvas) {
+                    new Chart(canvas.getContext('2d'), {
+                        type,
+                        data: { labels, datasets },
+                        options
+                    });
+                } else {
+                    console.warn(`Chart element #${chartId} not found.`);
+                }
+            }
+
+            createChart("performanceChart", "bar", ["Math", "Science", "History", "English"], [{
+                label: "Performance Score",
+                data: [85, 90, 75, 80],
+                backgroundColor: "rgba(54, 162, 235, 0.6)"
+            }]);
+
+            createChart("engagementChart", "line", ["Week 1", "Week 2", "Week 3", "Week 4"], [{
+                label: "Engagement Level",
+                data: [70, 80, 75, 90],
+                borderColor: "rgba(255, 99, 132, 1)",
+                fill: false
+            }]);
+
+            createChart("assignmentCompletionChart", "pie", ["Completed", "Pending", "Overdue"], [{
+                data: [60, 25, 15],
+                backgroundColor: ["#28a745", "#ffc107", "#dc3545"]
+            }]);
+
+            createChart("skillProficiencyChart", "radar", ["Math", "Science", "History", "English"], [{
+                label: "Skill Proficiency",
+                data: [90, 85, 80, 75],
+                backgroundColor: "rgba(75, 192, 192, 0.4)",
+                borderColor: "rgba(75, 192, 192, 1)"
+            }]);
+
+            createChart("weeklyActivityChart", "doughnut", ["Lectures", "Assignments", "Projects", "Discussions"], [{
+                data: [40, 30, 20, 10],
+                backgroundColor: ["#007bff", "#28a745", "#ffc107", "#dc3545"]
+            }]);
+            
+            // Make sure Chart.js is fully loaded before creating matrix charts
+            setTimeout(() => {
+                try {
+                    // Semester Performance Heatmap
+                    const heatmapData = [];
+                    for (let i = 0; i < 6; i++) {
+                        for (let j = 0; j < 4; j++) {
+                            heatmapData.push({ x: j, y: i, v: Math.floor(Math.random() * 100) });
+                        }
+                    }
+
+                    new Chart(document.getElementById("semesterPerformanceHeatmap").getContext('2d'), {
+                        type: 'matrix',
+                        data: {
+                            datasets: [{
+                                label: "Semester Performance",
+                                data: heatmapData,
+                                backgroundColor(ctx) {
+                                    const value = ctx.raw.v;
+                                    return value > 75 ? "#28a745" : value > 50 ? "#ffc107" : "#dc3545";
+                                },
+                                width: ({chart}) => (chart.chartArea.width / 5),
+                                height: ({chart}) => (chart.chartArea.height / 7)
+                            }]
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            responsive: true,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(context) {
+                                            return `Score: ${context[0].raw.v}`;
+                                        },
+                                        label: function(context) {
+                                            const x = context.raw.x;
+                                            const y = context.raw.y;
+                                            return `${["Math", "Science", "History", "English"][x]} - Sem ${6 - y}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { 
+                                    type: 'linear', 
+                                    position: 'bottom', 
+                                    min: -0.5,
+                                    max: 3.5,
+                                    ticks: { 
+                                        callback: (val) => ["Math", "Science", "History", "English"][val] 
+                                    }
+                                },
+                                y: { 
+                                    type: 'linear', 
+                                    position: 'left', 
+                                    min: -0.5,
+                                    max: 5.5,
+                                    ticks: { 
+                                        callback: (val) => `Sem ${6 - val}` 
+                                    } 
+                                }
+                            }
+                        }
+                    });
+                    
+                    // New Comparative Performance Heatmap
+                    const studentNames = ["You", "Class Avg", "Top Student"];
+                    const subjects = ["Math", "Science", "History", "English", "Programming"];
+                    
+                    const compareData = [];
+                    // Generate data comparing the student's performance against average and top performers
+                    for (let i = 0; i < studentNames.length; i++) {
+                        for (let j = 0; j < subjects.length; j++) {
+                            // For demo: "You" scores 65-85, "Class Avg" 60-80, "Top Student" 85-95
+                            let baseScore;
+                            if (i === 0) baseScore = Math.floor(Math.random() * 20) + 65; // You
+                            else if (i === 1) baseScore = Math.floor(Math.random() * 20) + 60; // Class Avg
+                            else baseScore = Math.floor(Math.random() * 10) + 85; // Top Student
+                            
+                            compareData.push({
+                                x: j,
+                                y: i,
+                                v: baseScore
+                            });
+                        }
+                    }
+                    
+                    new Chart(document.getElementById("comparePerformanceHeatmap").getContext('2d'), {
+                        type: 'matrix',
+                        data: {
+                            datasets: [{
+                                label: "Performance Comparison",
+                                data: compareData,
+                                backgroundColor(ctx) {
+                                    const value = ctx.raw.v;
+                                    // Green (excellent) to yellow (good) to red (needs improvement)
+                                    return value > 85 ? "rgba(40, 167, 69, 0.8)" : 
+                                        value > 70 ? "rgba(255, 193, 7, 0.8)" : 
+                                        "rgba(220, 53, 69, 0.8)";
+                                },
+                                borderColor: "rgba(0, 0, 0, 0.1)",
+                                borderWidth: 1,
+                                width: ({chart}) => (chart.chartArea.width / 6),
+                                height: ({chart}) => (chart.chartArea.height / 4)
+                            }]
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            responsive: true,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(context) {
+                                            const item = context[0];
+                                            const x = item.raw.x;
+                                            const y = item.raw.y;
+                                            return `${studentNames[y]} - ${subjects[x]}`;
+                                        },
+                                        label: function(context) {
+                                            return `Score: ${context.raw.v}`;
+                                        }
+                                    }
+                                },
+                                legend: {
+                                    display: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Performance Comparison'
+                                }
+                            },
+                            scales: {
+                                x: { 
+                                    type: 'linear', 
+                                    position: 'bottom', 
+                                    min: -0.5,
+                                    max: 4.5,
+                                    ticks: { 
+                                        callback: (val) => subjects[val],
+                                        stepSize: 1
+                                    },
+                                    grid: {
+                                        display: false
+                                    }
+                                },
+                                y: { 
+                                    type: 'linear', 
+                                    position: 'left', 
+                                    min: -0.5,
+                                    max: 2.5,
+                                    ticks: { 
+                                        callback: (val) => studentNames[val],
+                                        stepSize: 1
+                                    },
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error("Error creating heatmap charts:", e);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

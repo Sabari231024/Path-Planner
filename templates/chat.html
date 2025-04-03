@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Chat Room with Summarizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .tabs {
+            display: flex;
+            background: #e9ecef;
+        }
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .tab:hover {
+            background: #dee2e6;
+        }
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid #007bff;
+        }
+        .chat-box {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            display: none;
+        }
+        .chat-box.active {
+            display: block;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            word-wrap: break-word;
+        }
+        .sentiment {
+            font-weight: bold;
+            margin-left: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .positive { color: #28a745; }
+        .negative { color: #dc3545; }
+        .neutral { color: #6c757d; }
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            gap: 10px;
+        }
+        #message {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .summarize-btn {
+            margin-left: 10px;
+            background: #ffc107;
+            color: black;
+        }
+        #notifications {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        #notifications li {
+            padding: 10px;
+            background: #fff3cd;
+            margin: 5px 0;
+            border-radius: 5px;
+            color: #856404;
+        }
+        #summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Chat Room</h2>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('group')">Group Chat (IOTB)</div>
+            <div class="tab" onclick="switchTab('private')">Private Chat (Sudharsanan)</div>
+        </div>
+        
+        <div id="group-chat" class="chat-box active"></div>
+        <div id="private-chat" class="chat-box"></div>
+        
+        <div class="input-area">
+            <input type="text" id="message" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+            <button class="summarize-btn" onclick="summarizeChat()">Summarize</button>
+        </div>
+    </div>
+
+    <h3>Notifications</h3>
+    <ul id="notifications"></ul>
+
+    <h3>Chat Summary</h3>
+    <div id="summary">Click "Summarize" to generate a summary.</div>
+
+    <script>
+        var socket = io.connect('http://127.0.0.1:5000');
+        var currentChat = 'group';
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+            socket.emit('join', {chatType: 'group'});
+            socket.emit('join', {chatType: 'private'});
+        });
+
+        socket.on('message', function(data) {
+            const chatBox = data.chatType === 'group' ? '#group-chat' : '#private-chat';
+            const sentimentClass = data.sentiment.toLowerCase();
+            $(chatBox).append(
+                `<div class="message">
+                    <strong>Message:</strong> ${data.msg}
+                    <span class="sentiment ${sentimentClass}">(${data.sentiment})</span>
+                </div>`
+            );
+            $(chatBox)[0].scrollTop = $(chatBox)[0].scrollHeight;
+        });
+
+        socket.on('notification', function(notification) {
+            $('#notifications').append(`<li>${notification}</li>`);
+        });
+
+        function sendMessage() {
+            var message = $('#message').val();
+            if (message.trim() !== "") {
+                socket.emit('message', {msg: message, chatType: currentChat});
+                $('#message').val('');
+            }
+        }
+
+        function switchTab(tab) {
+            currentChat = tab;
+            $('.tab').removeClass('active');
+            $('.chat-box').removeClass('active');
+            $(`.tab:contains(${tab === 'group' ? 'Group' : 'Private'})`).addClass('active');
+            $(`#${tab}-chat`).addClass('active');
+        }
+
+        function summarizeChat() {
+            socket.emit('summarize', {chatType: currentChat});
+        }
+
+        socket.on('summary', function(data) {
+            $('#summary').text(data.summary);
+        });
+
+        $('#message').keypress(function(e) {
+            if (e.which == 13) {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

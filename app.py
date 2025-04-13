@@ -92,21 +92,30 @@ def get_notifications():
 @app.route('/summarize_chat', methods=['POST'])
 def summarize_chat():
     """Summarizes chat history using Ollama AI with Qwen2.5-1.5B."""
+    print("Summarize endpoint called!")
     data = request.json
+    print(f"Received data: {data}")
     chat_type = data['chatType']
+    print(f"Chat type: {chat_type}")
 
     if os.path.exists(CHAT_FILES[chat_type]):
         with open(CHAT_FILES[chat_type], 'r') as f:
             chat_text = f.read()
+        print(f"Chat content length: {len(chat_text)}")
 
         try:
+            print("Calling Ollama API...")
             response = ollama.chat(model="qwen2.5:1.5b", messages=[{"role": "user", "content": f"Summarize the following chat:\n{chat_text}"}])
+            print(f"Ollama response: {response}")
             summary = response.get('message', {}).get('content', 'No summary generated.')
         except Exception as e:
+            print(f"Ollama API Error: {str(e)}")
             summary = f"Error generating summary: {str(e)}"
     else:
         summary = "No chat history found."
+        print("No chat file found")
 
+    print(f"Returning summary: {summary}")
     return jsonify({"summary": summary})
 
 if __name__ == "__main__":
